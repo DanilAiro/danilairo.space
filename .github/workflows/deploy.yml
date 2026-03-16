@@ -19,10 +19,10 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t danilairo/danilairo.space:latest .
+        run: sudo docker build -t danilairo/danilairo.space:latest .
 
       - name: Push Docker image
-        run: docker push danilairo/danilairo.space:latest
+        run: sudo docker push danilairo/danilairo.space:latest
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
@@ -32,5 +32,5 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /srv/danilairo.space
-            docker pull danilairo/danilairo.space:latest
-            docker compose up -d
+            sudo docker pull danilairo/danilairo.space:latest
+            sudo docker compose up -d
