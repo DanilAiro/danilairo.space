@@ -2,11 +2,10 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -24,12 +23,19 @@ jobs:
       - name: Push Docker image
         run: docker push danilairo/danilairo.space:latest
 
+      - name: Debug SSH key
+        run: |
+          echo "${{ secrets.SERVER_SSH_KEY }}" > key.txt
+          echo "Lines: $(wc -l < key.txt)"
+          head -n 3 key.txt
+          tail -n 3 key.txt
+
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.LINUX_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY_NEW }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /srv/danilairo.space
             sudo docker pull danilairo/danilairo.space:latest
