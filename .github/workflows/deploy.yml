@@ -28,9 +28,9 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER_IP }}
-          username: root
+          username: ${{ secrets.LINUX_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /root/site
+            cd /srv/danilairo.space
             docker pull danilairo/danilairo.space:latest
             docker compose up -d
