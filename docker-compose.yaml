@@ -23,7 +23,7 @@ services:
     image: danilairo/danilairo.space:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.site.rule=Host(`danilairo.space`,`www.danilairo.space`)"
+      - "traefik.http.routers.site.rule=Host(`danilairo.space`) || Host(`www.danilairo.space`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=le"
       - "traefik.http.services.site.loadbalancer.server.port=8080"
