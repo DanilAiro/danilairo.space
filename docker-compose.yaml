@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+
+  traefik:
+    image: traefik:v3.0
+    command:
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.email=admin@danilairo.space
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./letsencrypt:/letsencrypt
+
+  site:
+    image: danilairo/danilairo.space:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.site.rule=Host(`danilairo.space`,`www.danilairo.space`)"
+      - "traefik.http.routers.site.entrypoints=websecure"
+      - "traefik.http.routers.site.tls.certresolver=le"
+      - "traefik.http.services.site.loadbalancer.server.port=8080"
