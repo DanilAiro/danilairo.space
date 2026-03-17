@@ -51,8 +51,6 @@ jobs:
             # === Экспорт переменных среды из GitHub Secrets ===
             export DOCKER_IMAGE="${{ secrets.DOCKER_IMAGE }}"
             export CONTAINER_PORT="${{ secrets.CONTAINER_PORT }}"
-            export HOST_HTTP_PORT="${{ secrets.HOST_HTTP_PORT }}"
-            export HOST_HTTPS_PORT="${{ secrets.HOST_HTTPS_PORT }}"
             export DOMAIN="${{ secrets.DOMAIN }}"
             export EMAIL="${{ secrets.EMAIL }}"
 
