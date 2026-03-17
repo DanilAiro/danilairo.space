@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   traefik:
@@ -8,14 +6,20 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
 
+      # entrypoints
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
 
+      # редирект HTTP → HTTPS
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+
+      # ACME (TLS challenge)
       - --certificatesresolvers.le.acme.email=admin@danilairo.space
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.le.acme.httpchallenge=true
-      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.tlschallenge=true
 
+      # debug
       - --log.level=DEBUG
 
     ports:
@@ -35,13 +39,16 @@ services:
     labels:
       - "traefik.enable=true"
 
+      # HTTP (для редиректа)
       - "traefik.http.routers.site-http.rule=Host(`danilairo.space`) || Host(`www.danilairo.space`)"
       - "traefik.http.routers.site-http.entrypoints=web"
 
+      # HTTPS
       - "traefik.http.routers.site.rule=Host(`danilairo.space`) || Host(`www.danilairo.space`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=le"
 
+      # сервис (порт внутри контейнера)
       - "traefik.http.services.site.loadbalancer.server.port=8080"
 
     networks:
@@ -49,4 +56,4 @@ services:
 
 networks:
   web:
-    external: false
+    driver: bridge
