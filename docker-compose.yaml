@@ -5,3 +5,5 @@ services:
     image: danilairo/danilairo.space:latest
     container_name: danilairo
     restart: unless-stopped
+    ports:
+      - "80:8080"
