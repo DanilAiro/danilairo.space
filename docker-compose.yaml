@@ -1,9 +1,43 @@
 version: "3.9"
 
 services:
-  danilairo:
-    image: danilairo/danilairo.space:latest
-    container_name: danilairo
+  site:
+    image: "${DOCKER_IMAGE}:latest"
+    container_name: site
+    restart: unless-stopped
+    expose:
+      - "${CONTAINER_PORT}"  # Контейнер слушает порт, но не проброшен наружу
+    networks:
+      - web
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
     restart: unless-stopped
     ports:
-      - "80:8080"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/www:/var/www/html
+    networks:
+      - web
+    depends_on:
+      - site
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    restart: unless-stopped
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/www:/var/www/html
+    entrypoint: >
+      /bin/sh -c "trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew; done;"
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge
