@@ -6,18 +6,16 @@ services:
     image: traefik:v3.6
     command:
       - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
 
-      # entrypoints
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
 
-      # ACME
       - --certificatesresolvers.le.acme.email=admin@danilairo.space
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le.acme.httpchallenge=true
       - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
 
-      # (очень помогает при дебаге)
       - --log.level=DEBUG
 
     ports:
@@ -28,20 +26,27 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
 
+    networks:
+      - web
+
   site:
     image: danilairo/danilairo.space:latest
 
     labels:
       - "traefik.enable=true"
 
-      # === HTTP (обязательно для ACME) ===
       - "traefik.http.routers.site-http.rule=Host(`danilairo.space`) || Host(`www.danilairo.space`)"
       - "traefik.http.routers.site-http.entrypoints=web"
 
-      # === HTTPS ===
       - "traefik.http.routers.site.rule=Host(`danilairo.space`) || Host(`www.danilairo.space`)"
       - "traefik.http.routers.site.entrypoints=websecure"
       - "traefik.http.routers.site.tls.certresolver=le"
 
-      # === сервис ===
       - "traefik.http.services.site.loadbalancer.server.port=8080"
+
+    networks:
+      - web
+
+networks:
+  web:
+    external: false
