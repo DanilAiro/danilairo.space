@@ -35,6 +35,7 @@ services:
       - "traefik.http.routers.danilairo.entrypoints=websecure"
       - "traefik.http.routers.danilairo.tls=true"
       - "traefik.http.routers.danilairo.tls.certresolver=letsencrypt"
+      - "traefik.http.services.danilairo.loadbalancer.server.port=8080"
     networks:
       - traefik_net
 
