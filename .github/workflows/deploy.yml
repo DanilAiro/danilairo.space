@@ -60,7 +60,7 @@ jobs:
             sudo mkdir -p /var/www/html
 
             # === Настройка Nginx (HTTP -> HTTPS, proxy_pass к контейнеру) ===
-            sudo tee /etc/nginx/conf.d/app.conf > /dev/null <<'EOF'
+            sudo tee /etc/nginx/conf.d/${DOMAIN}.conf > /dev/null <<'EOF'
 server {
     listen 80;
     server_name ${DOMAIN} www.${DOMAIN};
@@ -107,7 +107,7 @@ EOF
             sudo systemctl restart nginx || sudo service nginx restart
 
             # === Запуск Docker контейнера ===
-            cd /srv/app
+            cd /srv/${DOMAIN}
             echo "=== Pulling latest image ==="
             sudo docker pull ${DOCKER_IMAGE}:latest
 
