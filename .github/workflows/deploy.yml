@@ -23,7 +23,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: danilairo/danilairo.space:latest
+          tags: ${{ secrets.DOCKER_IMAGE }}:latest
 
       # === Копируем docker-compose.yaml на сервер ===
       - name: Copy docker-compose.yaml to server
@@ -33,10 +33,10 @@ jobs:
           username: ${{ secrets.LINUX_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yaml"
-          target: "/srv/danilairo.space"
+          target: "/srv/app"
           strip_components: 0
 
-      # === Деплой на сервер ===
+      # === Деплой на сервер с передачей переменных среды ===
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -46,10 +46,72 @@ jobs:
           timeout: 30s
           command_timeout: 10m
           script: |
-            cd /srv/danilairo.space
+            set -e
 
+            # === Экспорт переменных среды из GitHub Secrets ===
+            export DOCKER_IMAGE="${{ secrets.DOCKER_IMAGE }}"
+            export CONTAINER_PORT="${{ secrets.CONTAINER_PORT }}"
+            export HOST_HTTP_PORT="${{ secrets.HOST_HTTP_PORT }}"
+            export HOST_HTTPS_PORT="${{ secrets.HOST_HTTPS_PORT }}"
+            export DOMAIN="${{ secrets.DOMAIN }}"
+            export EMAIL="${{ secrets.EMAIL }}"
+
+            # === Создаём директории для Nginx и Certbot ===
+            sudo mkdir -p /etc/nginx/conf.d
+            sudo mkdir -p /etc/letsencrypt
+            sudo mkdir -p /var/www/html
+
+            # === Настройка Nginx (HTTP -> HTTPS, proxy_pass к контейнеру) ===
+            sudo tee /etc/nginx/conf.d/app.conf > /dev/null <<'EOF'
+server {
+    listen 80;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    root /var/www/html;
+    index index.html;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:${CONTAINER_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+            # === Проверяем наличие сертификата ===
+            if [ ! -d /etc/letsencrypt/live/${DOMAIN} ]; then
+              echo "=== First-time SSL setup with Certbot ==="
+              sudo certbot certonly --webroot -w /var/www/html \
+                -d ${DOMAIN} -d www.${DOMAIN} \
+                --email ${EMAIL} --agree-tos --non-interactive
+            fi
+
+            # === Перезапуск Nginx для применения сертификата ===
+            sudo nginx -t
+            sudo systemctl restart nginx || sudo service nginx restart
+
+            # === Запуск Docker контейнера ===
+            cd /srv/app
             echo "=== Pulling latest image ==="
-            sudo docker pull danilairo/danilairo.space:latest
+            sudo docker pull ${DOCKER_IMAGE}:latest
 
             echo "=== Starting containers ==="
             sudo docker compose -f docker-compose.yaml up -d --pull=always --force-recreate
