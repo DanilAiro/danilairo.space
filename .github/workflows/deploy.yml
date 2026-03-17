@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.LINUX_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yaml"
-          target: "/srv/app"
+          target: "/srv/${{ secrets.DOMAIN }}"
           strip_components: 0
 
       # === Деплой на сервер с передачей переменных среды ===
