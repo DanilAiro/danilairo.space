@@ -60,7 +60,7 @@ jobs:
             sudo mkdir -p /var/www/html
 
             # === Настройка Nginx (HTTP -> HTTPS, proxy_pass к контейнеру) ===
-            sudo tee /etc/nginx/conf.d/${DOMAIN}.conf > /dev/null <<'EOF'
+            sudo tee /etc/nginx/conf.d/${DOMAIN}.conf > /dev/null <<EOF
 server {
     listen 80;
     server_name ${DOMAIN} www.${DOMAIN};
@@ -73,7 +73,7 @@ server {
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://\$host\$request_uri;
     }
 }
 
@@ -86,10 +86,10 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:${CONTAINER_PORT};
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOF
