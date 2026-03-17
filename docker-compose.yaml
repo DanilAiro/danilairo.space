@@ -1,50 +1,7 @@
 version: "3.9"
 
 services:
-  traefik:
-    image: traefik:latest
-    container_name: traefik
-    restart: unless-stopped
-    command:
-      - "--log.level=DEBUG"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      # Редирект временно отключён для успешного получения сертификата
-      # - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      # - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      # HTTP-01 challenge вместо TLS-01
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=danilairo@mail.ru"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080" # Dashboard
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "traefik_letsencrypt:/letsencrypt"
-    networks:
-      - traefik_net
-
   danilairo:
     image: danilairo/danilairo.space:latest
     container_name: danilairo
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.danilairo.rule=Host(`danilairo.space`)"
-      - "traefik.http.routers.danilairo.entrypoints=websecure"
-      - "traefik.http.routers.danilairo.tls=true"
-      - "traefik.http.routers.danilairo.tls.certresolver=letsencrypt"
-      - "traefik.http.services.danilairo.loadbalancer.server.port=8080"
-    networks:
-      - traefik_net
-
-volumes:
-  traefik_letsencrypt:
-
-networks:
-  traefik_net:
-    driver: bridge
