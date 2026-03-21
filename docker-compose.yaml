@@ -1,43 +1,47 @@
 version: "3.9"
 
 services:
-  site:
-    image: "${DOCKER_IMAGE}:latest"
-    container_name: site
+  traefik:
+    image: traefik:latest
+    container_name: traefik
     restart: unless-stopped
-    expose:
-      - "${CONTAINER_PORT}"  # Контейнер слушает порт, но не проброшен наружу
-    networks:
-      - web
-
-  nginx:
-    image: nginx:latest
-    container_name: nginx
-    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=danilairo@mail.ru"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/certs:/etc/letsencrypt
-      - ./nginx/www:/var/www/html
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik_letsencrypt:/letsencrypt"
     networks:
-      - web
-    depends_on:
-      - site
+      - traefik_net
 
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
+  danilairo:
+    image: danilairo/danilairo.space:latest
+    container_name: danilairo
     restart: unless-stopped
-    volumes:
-      - ./nginx/certs:/etc/letsencrypt
-      - ./nginx/www:/var/www/html
-    entrypoint: >
-      /bin/sh -c "trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew; done;"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.danilairo.rule=Host(`danilairo.space`)"
+      - "traefik.http.routers.danilairo.entrypoints=websecure"
+      - "traefik.http.routers.danilairo.tls=true"
+      - "traefik.http.routers.danilairo.tls.certresolver=letsencrypt"
+      - "traefik.http.services.danilairo.loadbalancer.server.port=8080"
     networks:
-      - web
+      - traefik_net
+
+volumes:
+  traefik_letsencrypt:
 
 networks:
-  web:
+  traefik_net:
     driver: bridge
